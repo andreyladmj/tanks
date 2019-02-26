@@ -4,7 +4,7 @@ from time import sleep
 from cocos import director
 from cocos import scene
 
-from Global import CurrentKeyboard
+from Global import CurrentKeyboard, set_main_layer
 from MainSceneLayer import MainSceneLayer
 from objects.Tank import Tank
 
@@ -36,25 +36,29 @@ def createInterface():
 
     # Create a scene and set its initial layer.
 
-    main_scene_layer = MainSceneLayer()
-    main_scene = scene.Scene(main_scene_layer)
-    main_scene.schedule(main_scene_layer.buttonsHandler)
-    main_scene_layer.register_event_type('on_clicked')
+    MainLayer = MainSceneLayer()
+    set_main_layer(MainLayer)
+    main_scene = scene.Scene(MainLayer)
+    main_scene.schedule(MainLayer.buttonsHandler)
+    MainLayer.register_event_type('on_clicked')
 
-    main_scene_layer.register_event_type('add_tank')
+    MainLayer.register_event_type('add_tank')
+    MainLayer.register_event_type('add_animation')
+    MainLayer.register_event_type('add_bullet')
+    MainLayer.register_event_type('remove_animation')
 
-    # game_layers = Layers(main_scene_layer)
+    # game_layers = Layers(MainLayer)
     # init_global_variables(game_layers)
 
-    # @main_scene_layer.event
+    # @MainLayer.event
     # def on_clicked(clicks):
     #     print('ovverided', clicks)
     #     pass
 
-    main_scene_layer.dispatch_event('on_clicked', '12314124')
+    MainLayer.dispatch_event('on_clicked', '12314124')
 
-    main_scene_layer.dispatch_event('add_tank', Tank(500, 500, 180))
-    main_scene_layer.dispatch_event('add_tank', Tank(500, 800, 0))
+    MainLayer.dispatch_event('add_tank', Tank(500, 500, 180))
+    MainLayer.dispatch_event('add_tank', Tank(500, 800, 0))
 
     # load_map()
     #
@@ -86,7 +90,7 @@ def createInterface():
     #     #main_scene_layer.connections_listener = NetworkListener(ip, 1332, tanktype)
     #     Global.TankNetworkListenerConnection = NetworkListener(ip, 1332, tanktype, clan)
 
-    director.director.on_resize = main_scene_layer.resize
+    director.director.on_resize = MainLayer.resize
     director.director.window.push_handlers(CurrentKeyboard)
     director.director.run(main_scene)
 

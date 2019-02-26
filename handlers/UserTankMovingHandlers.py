@@ -26,10 +26,10 @@ class UserTankMovingHandlers(DefaultTankMovingHandlers):
         gun_turns_direction = CurrentKeyboard[self.GUN_RIGHT] - CurrentKeyboard[self.GUN_LEFT]
 
         if CurrentKeyboard[self.FIRE_LIGHT_GUN]:
-            self.target.fire()
+            self.target.fireSecondWeapon()
 
         if CurrentKeyboard[self.FIRE_HEAVY_GUN]:
-            self.target.heavy_fire()
+            self.target.fireFirstWeapon()
 
         self.addSpeed(moving_directions)
 

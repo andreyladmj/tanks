@@ -3,7 +3,9 @@ import random
 import math
 from time import time
 
+from Global import MainLayer, get_main_layer
 from objects.animations.HeavyBulletFireAnimation import HeavyBulletFireAnimation
+from objects.bullets.HeavyBullet import HeavyBullet
 
 
 class HeavyWeapon:
@@ -21,18 +23,18 @@ class HeavyWeapon:
         return random.randrange(-200, 200) / 100
 
     def firePosition(self):
-        cos_x = math.cos(math.radians(self.gun.rotation - 180))
-        sin_x = math.sin(math.radians(self.gun.rotation))
+        cos_x = math.cos(math.radians(self.gun.getGunRotation() - 180))
+        sin_x = math.sin(math.radians(self.gun.getGunRotation()))
         x = self.gun.x + self.heavy_fire_offset_x * sin_x + self.heavy_fire_offset_y * cos_x
         y = self.gun.y - self.heavy_fire_offset_x * cos_x + self.heavy_fire_offset_y * sin_x
         return (x, y)
 
     def fireRotation(self):
-        return self.gun.rotation - 90 + self.getAngleDeflection()
+        return self.gun.getGunRotation() - 90 + self.getAngleDeflection()
 
     def fireAnimationPosition(self):
-        cos_x = math.cos(math.radians(self.gun.rotation - 180))
-        sin_x = math.sin(math.radians(self.gun.rotation))
+        cos_x = math.cos(math.radians(self.gun.getGunRotation() - 180))
+        sin_x = math.sin(math.radians(self.gun.getGunRotation()))
         x = self.gun.x + self.heavy_fire_offset_x * sin_x + self.heavy_fire_offset_y * cos_x
         y = self.gun.y - self.heavy_fire_offset_x * cos_x + self.heavy_fire_offset_y * sin_x
         anim_x = x + self.heavy_fire_animation_offset_x * sin_x + self.heavy_fire_animation_offset_y * cos_x
@@ -64,7 +66,13 @@ class HeavyWeapon:
         position = self.firePosition()
         rotation = self.fireRotation()
         animatiom_position = self.fireAnimationPosition()
-        animatiom_rotation = self.gun.rotation
+        animatiom_rotation = self.gun.getGunRotation()
+
+        bullet = HeavyBullet(position, rotation)
+        get_main_layer().dispatch_event('add_bullet', bullet)
+
+        animation = HeavyBulletFireAnimation(animatiom_position, animatiom_rotation)
+        get_main_layer().dispatch_event('add_animation', animation)
 
         # bullet = BulletFactory.create(
         #     instance=HeavyBullet,

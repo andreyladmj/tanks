@@ -4,6 +4,8 @@ from threading import Timer
 
 from objects.HealthSprite import HealthSprite
 from objects.animations.ExplosionTankAnimation import ExplosionTankAnimation
+from objects.weapons.HeavyWeapon import HeavyWeapon
+from objects.weapons.LightWeapon import LightWeapon
 
 
 class Tank(sprite.Sprite):
@@ -28,6 +30,11 @@ class Tank(sprite.Sprite):
     spriteGunName = 'assets/tank/parts/E-100_2.png'
     spriteHealthName = 'assets/50x5.png'
 
+    canHeavyFire = True
+    canFire = True
+    bulletFreezTime = 0.5
+    heavyBulletFreezTime = 2
+
     bot = False
     clan = 0
     rotation_speed = 1
@@ -49,6 +56,9 @@ class Tank(sprite.Sprite):
 
         self.position = (x, y)
         self._update_position()
+
+        self.weapon1 = HeavyWeapon(self)
+        self.weapon2 = LightWeapon(self)
 
         self.cshape = cm.AARectShape(
             self.position,
@@ -81,10 +91,13 @@ class Tank(sprite.Sprite):
         self.healthHelper.setHealth(health)
 
     def heavy_fire(self, bullet=None):
-        self.Gun.fireFirstWeapon(bullet)
+        self.weapon1.fire()
+
+        # self.Gun.fireFirstWeapon(bullet)
 
     def fire(self, bullet=None):
-        self.Gun.fireSecondWeapon(bullet)
+        self.weapon2.fire()
+        # self.Gun.fireSecondWeapon(bullet)
 
     def fireFirstWeapon(self, bullet=None):
         if self.canHeavyFire:
@@ -97,6 +110,12 @@ class Tank(sprite.Sprite):
             self.weapon2.fire(bullet)
             self.canFire = False
             Timer(self.bulletFreezTime, self.acceptFire).start()
+
+    def acceptHeabyFire(self):
+        self.canHeavyFire = True
+
+    def acceptFire(self):
+        self.canFire = True
 
     def destroy(self):
         animation = ExplosionTankAnimation()

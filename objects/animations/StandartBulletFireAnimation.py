@@ -1,9 +1,6 @@
 import pyglet
 from cocos import sprite
 
-from components import Global
-from components.Global import addanimationToGame
-
 # anim = None
 # animation = None
 #
@@ -20,7 +17,7 @@ from objects.animations.AnimationTypes import OnceAnimation
 
 class StandartBulletFireAnimation:
 
-    def __init__(self):
+    def __init__(self, position=(0, 0), rotation=0):
         explosion = pyglet.image.load('assets/weapons/fire-small-gun.png')
         explosion_seq = pyglet.image.ImageGrid(explosion, 1, 3)
         explosion_tex_seq = pyglet.image.TextureGrid(explosion_seq)
@@ -28,13 +25,13 @@ class StandartBulletFireAnimation:
         # self.anim = sprite.Sprite(self.animation)
         self.anim = OnceAnimation(self.animation)
         self.anim.scale = 0.2
+        self.anim.position = position
+        self.anim.rotation = rotation - 180
 
     def getAnimation(self):
         return self.animation
 
-    def getSprite(self, position, rotation):
-        self.anim.position = position
-        self.anim.rotation = rotation - 180
+    def getSprite(self):
         return self.anim
 
     def appendAnimationToLayer(self, position, rotation):

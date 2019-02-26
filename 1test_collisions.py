@@ -1,6 +1,7 @@
 import cProfile
 from random import randint
 
+from Cython.Shadow import profile
 from pyglet.window import key
 import cocos.collision_model as cm
 
@@ -12,6 +13,7 @@ class Point():
         self.cshape = cm.AARectShape((x, y), w, h)
 
 
+@profile
 def benchmark():
     for i in range(200000):
         i = Point(randint(0, 200), randint(0, 200), randint(0, 5), randint(0, 5))
@@ -22,8 +24,10 @@ def benchmark():
     print(collisions)
 
 
-pr = cProfile.Profile()
-pr.enable()
-benchmark()
-pr.disable()
-pr.print_stats()
+# pr = cProfile.Profile()
+# pr.enable()
+# benchmark()
+# pr.disable()
+# pr.print_stats()
+
+benchmark(1)

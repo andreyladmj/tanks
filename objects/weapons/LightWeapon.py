@@ -3,7 +3,9 @@ import random
 import math
 from time import time
 
+from Global import get_main_layer
 from objects.animations.StandartBulletFireAnimation import StandartBulletFireAnimation
+from objects.bullets.StandartBullet import StandartBullet
 
 
 class LightWeapon:
@@ -21,18 +23,18 @@ class LightWeapon:
         return random.randrange(-500, 500) / 100
 
     def firePosition(self):
-        cos_x = math.cos(math.radians(self.gun.rotation - 180))
-        sin_x = math.sin(math.radians(self.gun.rotation))
+        cos_x = math.cos(math.radians(self.gun.getGunRotation() - 180))
+        sin_x = math.sin(math.radians(self.gun.getGunRotation()))
         x = self.gun.x + self.standart_fire_offset_x * sin_x + self.standart_fire_offset_y * cos_x
         y = self.gun.y - self.standart_fire_offset_x * cos_x + self.standart_fire_offset_y * sin_x
         return (x, y)
 
     def fireRotation(self):
-        return self.gun.rotation - 90 + self.getAngleDeflection()
+        return self.gun.getGunRotation() - 90 + self.getAngleDeflection()
 
     def fireAnimationPosition(self):
-        cos_x = math.cos(math.radians(self.gun.rotation - 180))
-        sin_x = math.sin(math.radians(self.gun.rotation))
+        cos_x = math.cos(math.radians(self.gun.getGunRotation() - 180))
+        sin_x = math.sin(math.radians(self.gun.getGunRotation()))
         x = self.gun.x + self.standart_fire_offset_x * sin_x + self.standart_fire_offset_y * cos_x
         y = self.gun.y - self.standart_fire_offset_x * cos_x + self.standart_fire_offset_y * sin_x
         anim_x = x + self.standart_fire_animation_offset_x * sin_x + self.standart_fire_animation_offset_y * cos_x
@@ -58,13 +60,19 @@ class LightWeapon:
     #
     #     animation = StandartBulletFireAnimation()
     #     animatiom_position = self.fireAnimationPosition()
-    #     animation.appendAnimationToLayer(animatiom_position, self.gun.rotation)
+    #     animation.appendAnimationToLayer(animatiom_position, self.gun.getGunRotation())
 
     def fire(self, bullet=None):
         position = self.firePosition()
         rotation = self.fireRotation()
         animatiom_position = self.fireAnimationPosition()
-        animatiom_rotation = self.gun.rotation
+        animatiom_rotation = self.gun.getGunRotation()
+
+        bullet = StandartBullet(position, rotation)
+        get_main_layer().dispatch_event('add_bullet', bullet)
+
+        animation = StandartBulletFireAnimation(animatiom_position, animatiom_rotation)
+        get_main_layer().dispatch_event('add_animation', animation)
     #
     #     bullet = BulletFactory.create(
     #         instance=StandartBullet,

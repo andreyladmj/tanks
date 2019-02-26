@@ -3,8 +3,6 @@ from threading import Timer
 from cocos import sprite
 from pyglet.image import load_animation
 
-from components import Global
-from components.Global import addanimationToGame
 from objects.animations.AnimationTypes import OnceAnimation
 
 

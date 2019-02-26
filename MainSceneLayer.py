@@ -1,11 +1,17 @@
+from itertools import chain
+from threading import Timer
+
 import cocos
 import pyglet
 from cocos.batch import BatchNode
 from pyglet.window import key
+import cocos.collision_model as cm
 
-from Global import CurrentKeyboard
+from Global import CurrentKeyboard, CollisionManager
+from handlers.BulletMovingHandlers import BulletMovingHandlers
 from handlers.UserTankMovingHandlers import UserTankMovingHandlers
-from layers.TankNodeLayer import TankNodeLayer
+from layers.TankNodeLayer import TankNodeLayer, ObjectsNodeLayer
+from objects.Explosion import Explosion
 
 
 class MainSceneLayer(cocos.layer.ScrollableLayer, pyglet.event.EventDispatcher):
@@ -15,10 +21,14 @@ class MainSceneLayer(cocos.layer.ScrollableLayer, pyglet.event.EventDispatcher):
         super(MainSceneLayer, self).__init__()
         self.schedule(self.update)
         self.tanksLayer = TankNodeLayer()
+        self.objectsLayer = ObjectsNodeLayer()
+        self.bulletsLayer = ObjectsNodeLayer()
         self.add(self.tanksLayer)
+        self.add(self.objectsLayer)
+        self.add(self.bulletsLayer)
 
     def update(self, dt):
-        pass
+        self.checkCollisions()
         # if Global.IsGeneralServer:
         #     Game.checkCollisions()
         #
@@ -39,7 +49,48 @@ class MainSceneLayer(cocos.layer.ScrollableLayer, pyglet.event.EventDispatcher):
 
     def add_tank(self, tank):
         self.tanksLayer.add_tank(tank)
+        CollisionManager.add(tank)
         tank.do(UserTankMovingHandlers())
+
+    def add_bullet(self, bullet):
+        self.bulletsLayer.add_object(bullet)
+        CollisionManager.add(bullet)
+        bullet.do(BulletMovingHandlers())
+
+    def add_animation(self, animation, duration=0):
+        self.objectsLayer.add(animation.getSprite(), z=5)
+        if duration:
+            t = Timer(duration, lambda: self.objectsLayer.remove(animation.getSprite()))
+            t.start()
+
+    def remove_animation(self, animation):
+        self.objectsLayer.remove(animation)
+
+    def checkCollisions(self):
+        for bullet in self.bulletsLayer.get_children():
+            bullet.cshape = cm.AARectShape(bullet.position, 2, 2)
+            collisions = CollisionManager.objs_colliding(bullet)
+
+            if collisions:
+                items = chain(self.objectsLayer.get_children(), self.tanksLayer.get_children())
+
+                for item in items:
+                    if item in collisions:
+                        explosion = Explosion(bullet)
+                        explosion.checkDamageCollisions()
+                        self.bulletsLayer.remove(bullet)
+                        CollisionManager.remove_tricky(bullet)
+
+            if bullet.exceededTheLengthLimit():
+                explosion = Explosion(bullet)
+                explosion.checkDamageCollisions()
+                self.bulletsLayer.remove(bullet)
+                CollisionManager.remove_tricky(bullet)
+
+            # if Collisions.checkWithWalls(bullet) \
+            #         or Collisions.checkWithObjects(bullet, bullet.parent_id) \
+            #         or bullet.exceededTheLengthLimit():
+            #     bullet.destroy()
 
     def on_clicked(self, clicks):
         print('on_clicked', clicks)
