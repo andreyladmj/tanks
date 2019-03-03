@@ -2,6 +2,8 @@ import cocos.collision_model as cm
 from cocos import sprite
 from threading import Timer
 
+from Global import get_main_layer
+from helper.DamageHelper import DamageHelper
 from objects.HealthSprite import HealthSprite
 from objects.animations.ExplosionTankAnimation import ExplosionTankAnimation
 from objects.weapons.HeavyWeapon import HeavyWeapon
@@ -32,7 +34,7 @@ class Tank(sprite.Sprite):
 
     canHeavyFire = True
     canFire = True
-    bulletFreezTime = 0.5
+    bulletFreezTime = 0.3
     heavyBulletFreezTime = 2
 
     bot = False
@@ -88,7 +90,9 @@ class Tank(sprite.Sprite):
         if self.healthHelper: self.healthHelper.updateHealthPosition(self.position)
 
     def setHealth(self, health):
-        self.healthHelper.setHealth(health)
+        # self.healthHelper.setHealth(health)
+        percent = max(health, 0) / 100.
+        self.healthSprite.scale_x = percent
 
     def heavy_fire(self, bullet=None):
         self.weapon1.fire()
@@ -129,16 +133,19 @@ class Tank(sprite.Sprite):
         dmg = DamageHelper.get_damage(self.position, bullet, dx)
 
         self.health -= dmg
+        x, y = self.position
+        get_main_layer().add_damage_label(dmg, (x, y + 20))
+        self.setHealth(self.health)
 
-        Global.damageSomeTank(id=self.id, dmg=dmg, health=self.health)
-
-        Global.Queue.append({
-            "action": NetworkActions.DAMAGE,
-            NetworkDataCodes.TYPE: NetworkDataCodes.TANK,
-            NetworkDataCodes.TANK_ID: self.id,
-            NetworkDataCodes.HEALTH: self.health,
-            NetworkDataCodes.DAMAGE: dmg
-        })
+        # Global.damageSomeTank(id=self.id, dmg=dmg, health=self.health)
+        #
+        # Global.Queue.append({
+        #     "action": NetworkActions.DAMAGE,
+        #     NetworkDataCodes.TYPE: NetworkDataCodes.TANK,
+        #     NetworkDataCodes.TANK_ID: self.id,
+        #     NetworkDataCodes.HEALTH: self.health,
+        #     NetworkDataCodes.DAMAGE: dmg
+        # })
 
     def getGunRotation(self):
         return self.gun_rotation + self.rotation

@@ -1,9 +1,8 @@
 import pyglet
 
+from Global import get_main_layer
 from objects.Bullet import Bullet
 from objects.animations.ExplosionStandartBulletAnimation import explosionStandartBulletAnimation
-from objects.animations.ExplosionStandartBulletAnimation2 import explosionStandartBulletAnimation2
-from objects.animations.StandartBulletFireAnimation import StandartBulletFireAnimation
 
 
 class StandartBullet(Bullet):
@@ -19,9 +18,6 @@ class StandartBullet(Bullet):
 
     speed = 400
 
-    def __init__(self, position=(0, 0), rotation=0):
-        super(StandartBullet, self).__init__(self.spriteName, position, rotation)
-
     def removeAnimation(self):
         Global.Layers.removeAnimation(self)
         # if self in Global.layers['bullets']: Global.layers['bullets'].remove(self)
@@ -30,7 +26,7 @@ class StandartBullet(Bullet):
     def destroy(self, position=None):
         if not position: position = self.position
 
-        animation = explosionStandartBulletAnimation()
-        animation.appendAnimationToLayer(position)
+        animation = explosionStandartBulletAnimation(self.position, self.rotation)
+        get_main_layer().dispatch_event('add_animation', animation)
 
         super(StandartBullet, self).destroy()

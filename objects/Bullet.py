@@ -7,6 +7,8 @@ from cocos import sprite
 from cocos.actions import Action, MoveBy
 import cocos.collision_model as cm
 
+from Global import get_main_layer, CollisionManager
+
 
 class Bullet(sprite.Sprite):
     # startPosition = (0, 0)
@@ -22,11 +24,13 @@ class Bullet(sprite.Sprite):
     start_position = (0, 0)
     last_update_time = 0
 
-    def __init__(self, spriteName, position=(0, 0), rotation=0):
-        super(Bullet, self).__init__(spriteName)
+    def __init__(self, position=(0, 0), rotation=0, fired_tank=None):
+        super().__init__(self.spriteName)
         self.start_position = position
+        self.position = position
         self.last_update_time = time()
         self.rotation = rotation
+        self.fired_tank = fired_tank
 
         self.cshape = cm.AARectShape(
             self.position,
@@ -90,7 +94,9 @@ class Bullet(sprite.Sprite):
         # frames = [frame.image for frame in animation.frames]
 
     def destroy(self, position=None):
-        removeBullet(self)
+        main = get_main_layer()
+        main.bulletsLayer.remove(self)
+        CollisionManager.remove_tricky(self)
 
     def getObjectFromSelf(self):
         return {

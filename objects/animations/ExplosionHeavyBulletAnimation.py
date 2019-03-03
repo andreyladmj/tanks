@@ -8,7 +8,7 @@ from objects.animations.AnimationTypes import OnceAnimation
 
 class explosionHeavyBulletAnimation:
 
-    def __init__(self):
+    def __init__(self, position=(0, 0), rotation=0):
         explosion = pyglet.image.load('assets/weapons/bullet-explosion.png')
         explosion_seq = pyglet.image.ImageGrid(explosion, 1, 20)
         explosion_tex_seq = pyglet.image.TextureGrid(explosion_seq)
@@ -18,13 +18,13 @@ class explosionHeavyBulletAnimation:
         self.anim = OnceAnimation(self.animation)
         self.anim.image_anchor = (self.animation.get_max_width() / 2, self.animation.get_max_height() / 4)
         self.anim.scale = 0.5
+        self.anim.position = position
+        self.anim.rotation = rotation - 90
 
     def getAnimation(self):
         return self.animation
 
-    def getSprite(self, position, rotation):
-        self.anim.position = position
-        self.anim.rotation = rotation - 90
+    def getSprite(self):
         return self.anim
 
     def appendAnimationToLayer(self, position, rotation):

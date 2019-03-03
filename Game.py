@@ -57,7 +57,7 @@ def createInterface():
 
     MainLayer.dispatch_event('on_clicked', '12314124')
 
-    MainLayer.dispatch_event('add_tank', Tank(500, 500, 180))
+    MainLayer.dispatch_event('add_tank', Tank(500, 500, 180), True)
     MainLayer.dispatch_event('add_tank', Tank(500, 800, 0))
 
     # load_map()

@@ -1,3 +1,4 @@
+from Global import get_main_layer
 from objects.Bullet import Bullet
 from objects.animations.ExplosionHeavyBulletAnimation import explosionHeavyBulletAnimation
 
@@ -15,16 +16,13 @@ class HeavyBullet(Bullet):
 
     speed = 600
 
-    def __init__(self, position=(0, 0), rotation=0):
-        super(HeavyBullet, self).__init__(self.spriteName, position, rotation)
-
     def removeAnimation(self):
         Global.Layers.removeAnimation(self)
 
     def destroy(self, position=None):
         if not position: position = self.position
 
-        animation = explosionHeavyBulletAnimation()
-        animation.appendAnimationToLayer(position, self.rotation)
+        animation = explosionHeavyBulletAnimation(self.position, self.rotation)
+        get_main_layer().dispatch_event('add_animation', animation)
 
         super(HeavyBullet, self).destroy()

@@ -9,7 +9,7 @@ from objects.animations.AnimationTypes import OnceAnimation
 class explosionStandartBulletAnimation(sprite.Sprite):
     src = 'assets/weapons/bullet-explode.gif'
 
-    def __init__(self):
+    def __init__(self, position=(0, 0), rotation=0):
         self.animation = load_animation(self.src)
         self.animation.frames[-1].duration = None  # stop loop
 
@@ -19,9 +19,13 @@ class explosionStandartBulletAnimation(sprite.Sprite):
         self.anim = OnceAnimation(self.animation)
         self.anim.image_anchor = (self.animation.get_max_width() / 2, self.animation.get_max_height() / 4)
         self.anim.scale = 0.2
+        self.anim.position = position
 
     def getAnimation(self):
         return self.animation
+
+    def getSprite(self):
+        return self.anim
 
     def appendAnimationToLayer(self, position):
         self.anim.position = position

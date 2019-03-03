@@ -1,8 +1,10 @@
 from itertools import chain
 from threading import Timer
+from time import time
 
 import cocos
 import pyglet
+from cocos.actions import MoveBy, FadeOut
 from cocos.batch import BatchNode
 from pyglet.window import key
 import cocos.collision_model as cm
@@ -10,6 +12,7 @@ import cocos.collision_model as cm
 from Global import CurrentKeyboard, CollisionManager
 from handlers.BulletMovingHandlers import BulletMovingHandlers
 from handlers.UserTankMovingHandlers import UserTankMovingHandlers
+# from helper.CalcCoreHelper import CalcCoreHelper
 from layers.TankNodeLayer import TankNodeLayer, ObjectsNodeLayer
 from objects.Explosion import Explosion
 
@@ -20,15 +23,33 @@ class MainSceneLayer(cocos.layer.ScrollableLayer, pyglet.event.EventDispatcher):
     def __init__(self):
         super(MainSceneLayer, self).__init__()
         self.schedule(self.update)
+        self.backgroundLayer = ObjectsNodeLayer()
         self.tanksLayer = TankNodeLayer()
         self.objectsLayer = ObjectsNodeLayer()
         self.bulletsLayer = ObjectsNodeLayer()
-        self.add(self.tanksLayer)
-        self.add(self.objectsLayer)
-        self.add(self.bulletsLayer)
+        self.additionalLayer = ObjectsNodeLayer()
+        self.globalPanel = cocos.layer.Layer()
+        self.add(self.backgroundLayer, z=1)
+        self.add(self.objectsLayer, z=2)
+        self.add(self.tanksLayer, z=3)
+        self.add(self.bulletsLayer, z=4)
+        self.add(self.additionalLayer, z=5)
+        self.add(self.globalPanel, z=5)
+        # self.calc_core = CalcCoreHelper(self.tanksLayer, self.objectsLayer, self.bulletsLayer)
 
+    s = 0
     def update(self, dt):
         self.checkCollisions()
+        self.removeLabelsWithDamage()
+
+        # print(dt)
+
+        # self.s += dt
+        # print('dt', dt, 'self.s', self.s)
+
+        # if self.s > 4:
+        #     self.calc_core.update_plt()
+        #     self.s = 0
         # if Global.IsGeneralServer:
         #     Game.checkCollisions()
         #
@@ -47,10 +68,14 @@ class MainSceneLayer(cocos.layer.ScrollableLayer, pyglet.event.EventDispatcher):
     # def click(self, clicks):
     #     self.dispatch_event('on_clicked', clicks)
 
-    def add_tank(self, tank):
-        self.tanksLayer.add_tank(tank)
+    def add_tank(self, tank, player=False):
+        self.tanksLayer.add(tank)
+        self.additionalLayer.add(tank.GunSprite)
+        self.additionalLayer.add(tank.healthSprite)
         CollisionManager.add(tank)
-        tank.do(UserTankMovingHandlers())
+
+        if player:
+            tank.do(UserTankMovingHandlers())
 
     def add_bullet(self, bullet):
         self.bulletsLayer.add_object(bullet)
@@ -58,13 +83,13 @@ class MainSceneLayer(cocos.layer.ScrollableLayer, pyglet.event.EventDispatcher):
         bullet.do(BulletMovingHandlers())
 
     def add_animation(self, animation, duration=0):
-        self.objectsLayer.add(animation.getSprite(), z=5)
-        if duration:
-            t = Timer(duration, lambda: self.objectsLayer.remove(animation.getSprite()))
-            t.start()
+        self.additionalLayer.add(animation.getSprite(), z=5)
+        # if duration:
+        #     t = Timer(duration, lambda: self.additionalLayer.remove(animation.getSprite()))
+        #     t.start()
 
     def remove_animation(self, animation):
-        self.objectsLayer.remove(animation)
+        self.additionalLayer.remove(animation)
 
     def checkCollisions(self):
         for bullet in self.bulletsLayer.get_children():
@@ -75,18 +100,17 @@ class MainSceneLayer(cocos.layer.ScrollableLayer, pyglet.event.EventDispatcher):
                 items = chain(self.objectsLayer.get_children(), self.tanksLayer.get_children())
 
                 for item in items:
-                    if item in collisions:
+                    if item in collisions and item != bullet.fired_tank:
                         explosion = Explosion(bullet)
                         explosion.checkDamageCollisions()
-                        self.bulletsLayer.remove(bullet)
-                        CollisionManager.remove_tricky(bullet)
+                        bullet.destroy()
+                        # self.bulletsLayer.remove(bullet)
+                        # CollisionManager.remove_tricky(bullet)
 
             if bullet.exceededTheLengthLimit():
                 explosion = Explosion(bullet)
                 explosion.checkDamageCollisions()
-                self.bulletsLayer.remove(bullet)
-                CollisionManager.remove_tricky(bullet)
-
+                bullet.destroy()
             # if Collisions.checkWithWalls(bullet) \
             #         or Collisions.checkWithObjects(bullet, bullet.parent_id) \
             #         or bullet.exceededTheLengthLimit():
@@ -161,25 +185,23 @@ class MainSceneLayer(cocos.layer.ScrollableLayer, pyglet.event.EventDispatcher):
 
     damageLabels = []
 
-    def damage(self, damage, position):
+    def add_damage_label(self, damage, position):
         label = cocos.text.Label(
             '-' + str(int(round(damage))),
             font_name='Helvetica',
-            font_size=10,
+            font_size=10, bold=True,
             color=(255, 0, 0, 255),
             anchor_x='center', anchor_y='center'
         )
         label.deleteWhenHided = True
         label.position = position
-        # Global.Layers.globalPanel.add(label)
-        Global.Layers.globalPanel.add(label)
         label.do(MoveBy((0, 100), 2) | FadeOut(2))
-        self.damageLabels.append(label)
+        self.globalPanel.add(label)
 
     def removeLabelsWithDamage(self):
-        for label in self.damageLabels:
-            if not int(label.opacity):
-                if label in Global.Layers.globalPanel: Global.Layers.globalPanel.remove(label)
+        for label in self.globalPanel.get_children():
+            if isinstance(label, cocos.text.Label) and not int(label.opacity):
+                self.globalPanel.remove(label)
 
     def printDebugInfo(self):
         bullets = Global.getGameBullets()
