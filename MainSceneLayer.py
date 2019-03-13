@@ -35,6 +35,8 @@ class MainSceneLayer(cocos.layer.ScrollableLayer, pyglet.event.EventDispatcher):
         self.add(self.bulletsLayer, z=4)
         self.add(self.additionalLayer, z=5)
         self.add(self.globalPanel, z=5)
+
+        self.backgroundLayer.add(cocos.sprite.Sprite('assets/background.png'))
         # self.calc_core = CalcCoreHelper(self.tanksLayer, self.objectsLayer, self.bulletsLayer)
 
     s = 0
@@ -95,26 +97,24 @@ class MainSceneLayer(cocos.layer.ScrollableLayer, pyglet.event.EventDispatcher):
         for bullet in self.bulletsLayer.get_children():
             bullet.cshape = cm.AARectShape(bullet.position, 2, 2)
             collisions = CollisionManager.objs_colliding(bullet)
+            shouldExplose = False
 
             if collisions:
-                items = chain(self.objectsLayer.get_children(), self.tanksLayer.get_children())
-
-                for item in items:
+                for item in self.tanksLayer.get_children():
                     if item in collisions and item != bullet.fired_tank:
-                        explosion = Explosion(bullet)
-                        explosion.checkDamageCollisions()
-                        bullet.destroy()
-                        # self.bulletsLayer.remove(bullet)
-                        # CollisionManager.remove_tricky(bullet)
+                        shouldExplose = True
+                        break
 
-            if bullet.exceededTheLengthLimit():
+                if not shouldExplose:
+                    for item in self.objectsLayer.get_children():
+                        if item in collisions:
+                            shouldExplose = True
+                            break
+
+            if bullet.exceededTheLengthLimit() or shouldExplose:
                 explosion = Explosion(bullet)
                 explosion.checkDamageCollisions()
                 bullet.destroy()
-            # if Collisions.checkWithWalls(bullet) \
-            #         or Collisions.checkWithObjects(bullet, bullet.parent_id) \
-            #         or bullet.exceededTheLengthLimit():
-            #     bullet.destroy()
 
     def on_clicked(self, clicks):
         print('on_clicked', clicks)
