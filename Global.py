@@ -13,3 +13,7 @@ def set_main_layer(layer):
 
 def get_main_layer():
     return MainLayer
+
+class GameFactory:
+    def add_tank(self, *args, **kwargs):
+        return MainLayer.add_tank(*args, **kwargs)

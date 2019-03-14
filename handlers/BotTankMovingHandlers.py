@@ -1,67 +1,100 @@
 import math
-from threading import Thread
+import random
 
-import time
+from cocos import actions
 
 import operator
 
-from Landing.Center import Center
-from components import Global
-from movingHandlers.DefaultTankMovingHandlers import DefaultTankMovingHandlers
+from Global import get_main_layer
 from objects.Tank import Tank
 
 
-class BotTankMovingHandlers(DefaultTankMovingHandlers):
-    speed = 120
-    target = None  # type: Tank
+class BotTankMovingHandlers(actions.Move):
+      # type: Tank
     '''
     actions: fire, rotate gun
     observations: K-nearest tanks, current position, gun rotation, tank rotation
     '''
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.speed = 5
+        self.target = None
+        self.observations = []
+        self.actions = []
+        self.rewards = []
+
     def step(self, dt):
         super(BotTankMovingHandlers, self).step(dt)  # Run step function on the parent class.
 
-        if self.findNearPlayerAndAttack() or self.findNearBuildingAndAttack():
-            self.reduceSpeed()
-        else:
-            self.setDefaultMoving()
+        observation = self.get_observation()
+        self.observations.append(observation)
+        action = self.get_predicted_action(observation)
 
-        self.checkPosition()
+        if action == 0: pass
+        if action == 1: self.gun_rotate(-1)
+        if action == 2: self.gun_rotate(1)
+        if action == 3: self.target.fireFirstWeapon()
 
-        # turns_direction = Global.CurrentKeyboard[self.RIGHT] - Global.CurrentKeyboard[self.LEFT]
-        # moving_directions = Global.CurrentKeyboard[self.UP] - Global.CurrentKeyboard[self.DOWN]
-        # gun_turns_direction = Global.CurrentKeyboard[self.GUN_RIGHT] - Global.CurrentKeyboard[self.GUN_LEFT]
-        #
-        # if Global.CurrentKeyboard[self.FIRE_LIGHT_GUN]:
-        #     self.target.fire()
-        #
-        # if Global.CurrentKeyboard[self.FIRE_HEAVY_GUN]:
-        #     self.target.heavy_fire()
-        #
-        # self.addSpeed(moving_directions)
-        #
-        # # Set the object's velocity.
-        # self.setTankRotation(turns_direction, moving_directions)
-        # new_velocity = self.getVelocity()
-        #
-        # new_position = tuple(map(operator.add, self.target.position, new_velocity))
-        #
-        # if self.checkCollisionsWithObjects():
-        #     self.target.velocity = (0, 0)
-        #     self.target.position = self.target.old_position
-        # else:
-        #     self.target.old_position = self.target.position
-        #     new_velocity = self.getVelocityByNewPosition(self.target.position, new_position)
-        #     self.setNewVelocity(new_velocity)
-        #
-        #
-        # # SHOULD REDUCE SPEED IF NEXT POSITION IS WALL
-        # #self.setNewVelocity(new_velocity)
-        # self.setGunPosition()
-        #
-        # # Set the object's rotation
-        # self.setGunRotation(gun_turns_direction)
+        reward = self.get_reward()
+
+        self.actions.append(action)
+        self.rewards.append(reward)
+        print(self.rewards)
+        print(self.actions)
+        print('')
+
+    def policy_rollout(self, env):
+        observation, reward, done = env.reset(), 0, False
+        obs, acts, rews = [], [], []
+
+        while not done:
+
+            env.render()
+            obs.append(observation)
+
+            action = act(observation)
+            observation, reward, done, _ = env.step(action)
+
+            acts.append(action)
+            rews.append(reward)
+
+        return obs, acts, rews
+
+    def get_reward(self):
+        return self.target.get_reward()
+
+    def get_observation(self):
+        return get_main_layer().get_observation(self.target)
+
+    def get_predicted_action(self, observation):
+        return random.randint(0, 3)
+
+    def gun_rotate(self, direction):
+        self.target.gun_rotation += direction
+
+    def rotate(self, direction):
+        self.target.rotation += direction
+
+    def move(self):
+        new_velocity = self.getVelocity()
+        new_position = tuple(map(operator.add, self.target.position, new_velocity))
+        new_velocity = self.getVelocityByNewPosition(self.target.position, new_position)
+        self.target.velocity = new_velocity
+
+    def getVelocityByNewPosition(self, current_position, new_position):
+        curr_x, curr_y = current_position
+        new_x, new_y = new_position
+        diff_x = new_x - curr_x
+        diff_y = new_y - curr_y
+
+        return (diff_x, diff_y)
+
+    def getVelocity(self):
+        tank_rotation = self.target.rotation
+        cos_x = math.cos(math.radians(tank_rotation + 180))
+        sin_x = math.sin(math.radians(tank_rotation + 180))
+        return (self.speed * sin_x, self.speed * cos_x)
 
     def check_position(self):
         if not self.findNearPlayerAndAttack():

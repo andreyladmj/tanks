@@ -10,6 +10,7 @@ from pyglet.window import key
 import cocos.collision_model as cm
 
 from Global import CurrentKeyboard, CollisionManager
+from handlers.BotTankMovingHandlers import BotTankMovingHandlers
 from handlers.BulletMovingHandlers import BulletMovingHandlers
 from handlers.UserTankMovingHandlers import UserTankMovingHandlers
 # from helper.CalcCoreHelper import CalcCoreHelper
@@ -36,7 +37,10 @@ class MainSceneLayer(cocos.layer.ScrollableLayer, pyglet.event.EventDispatcher):
         self.add(self.additionalLayer, z=5)
         self.add(self.globalPanel, z=5)
 
-        self.backgroundLayer.add(cocos.sprite.Sprite('assets/background.png'))
+        back = cocos.sprite.Sprite('assets/background.png')
+        back.image_anchor = (0,0)
+        back.position = (0,0)
+        self.backgroundLayer.add(back)
         # self.calc_core = CalcCoreHelper(self.tanksLayer, self.objectsLayer, self.bulletsLayer)
 
     s = 0
@@ -79,6 +83,9 @@ class MainSceneLayer(cocos.layer.ScrollableLayer, pyglet.event.EventDispatcher):
         if player:
             tank.do(UserTankMovingHandlers())
 
+        if not player:
+            tank.do(BotTankMovingHandlers())
+
     def add_bullet(self, bullet):
         self.bulletsLayer.add_object(bullet)
         CollisionManager.add(bullet)
@@ -115,6 +122,13 @@ class MainSceneLayer(cocos.layer.ScrollableLayer, pyglet.event.EventDispatcher):
                 explosion = Explosion(bullet)
                 explosion.checkDamageCollisions()
                 bullet.destroy()
+
+    def get_observation(self, tank):
+        obs = []
+        for item in self.tanksLayer.get_children():
+            tank_info = [item.position[0], item.position[1], item.getGunRotation()]
+            obs.append(tank_info)
+        return obs
 
     def on_clicked(self, clicks):
         print('on_clicked', clicks)

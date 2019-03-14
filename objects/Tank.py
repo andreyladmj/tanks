@@ -62,6 +62,8 @@ class Tank(sprite.Sprite):
         self.weapon1 = HeavyWeapon(self)
         self.weapon2 = LightWeapon(self)
 
+        self.reward = 0
+
         self.cshape = cm.AARectShape(
             self.position,
             self.width // 2,
@@ -146,6 +148,15 @@ class Tank(sprite.Sprite):
         #     NetworkDataCodes.HEALTH: self.health,
         #     NetworkDataCodes.DAMAGE: dmg
         # })
+        return dmg
+
+    def get_reward(self):
+        reward = self.reward
+        self.reward = 0
+        return reward
+
+    def set_reward(self, reward):
+        self.reward = max(self.reward, reward)
 
     def getGunRotation(self):
         return self.gun_rotation + self.rotation
