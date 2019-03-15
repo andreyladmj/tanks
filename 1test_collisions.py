@@ -31,3 +31,35 @@ def benchmark():
 # pr.print_stats()
 
 benchmark(1)
+
+
+
+import sys
+sys.path.extend(['/home/andrei/Python/tanks'])
+sys.path.extend(['/home/andrei/Python/tanks/assets'])
+
+import numpy as np
+from cocos import director
+from cocos import scene
+from cocos.batch import BatchNode
+from cocos import sprite
+from objects.Tank import Tank
+director.director.init(width=2048, height=960, resizable=True, autoscale=False)
+layer = BatchNode()
+c = sprite.Sprite('gil-brazo2.png')
+c.position = (12,11)
+layer.add(c)
+layer.add(c)
+layer.get_children()
+
+t = tanks_list[3]
+
+tanks_list.index(t)
+
+tanks_list = layer.get_children()
+tanks = np.array(list(map(lambda obj: obj.position, tanks_list)))
+dist_sq = np.sum((tanks[:, np.newaxis] - tanks[np.newaxis, :]) ** 2, axis=-1)
+K = 3
+nearest_sorted = np.argsort(dist_sq, axis=1)[:, :K+1]
+
+

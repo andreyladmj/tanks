@@ -44,6 +44,7 @@ class Tank(sprite.Sprite):
     speed_acceleration = 1.2
     max_speed = 35
 
+
     def __init__(self, x=0, y=0, rotation=0):
         self.GunSprite = sprite.Sprite(self.spriteGunName)
         self.GunSprite.image_anchor = (self.GunSprite.image.width / 2, self.GunSprite.image.height / 2 + 20)
@@ -63,6 +64,9 @@ class Tank(sprite.Sprite):
         self.weapon2 = LightWeapon(self)
 
         self.reward = 0
+        self.tf_rewards = []
+        self.tf_actions = []
+        self.tf_observations = []
 
         self.cshape = cm.AARectShape(
             self.position,
@@ -124,11 +128,10 @@ class Tank(sprite.Sprite):
         self.canFire = True
 
     def destroy(self):
-        animation = ExplosionTankAnimation()
-        animation.appendAnimationToLayer(self.position)
 
-        Global.EventDispatcher.dispatch_event('tank_destroy', self)
-        Global.removeTankFromGame(self)
+        animation = ExplosionTankAnimation(self.position)
+        get_main_layer().dispatch_event('add_animation', animation)
+        get_main_layer().dispatch_event('tank_destroy', self)
 
     def damage(self, bullet):
         dx = (self.width + self.height) * self.scale / 2
@@ -138,6 +141,9 @@ class Tank(sprite.Sprite):
         x, y = self.position
         get_main_layer().add_damage_label(dmg, (x, y + 20))
         self.setHealth(self.health)
+
+        if self.health <= 0:
+            self.destroy()
 
         # Global.damageSomeTank(id=self.id, dmg=dmg, health=self.health)
         #

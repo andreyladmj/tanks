@@ -1,4 +1,5 @@
 from itertools import chain
+from random import randint
 from threading import Timer
 from time import time
 
@@ -16,6 +17,8 @@ from handlers.UserTankMovingHandlers import UserTankMovingHandlers
 # from helper.CalcCoreHelper import CalcCoreHelper
 from layers.TankNodeLayer import TankNodeLayer, ObjectsNodeLayer
 from objects.Explosion import Explosion
+from objects.Tank import Tank
+import numpy as np
 
 
 class MainSceneLayer(cocos.layer.ScrollableLayer, pyglet.event.EventDispatcher):
@@ -74,6 +77,16 @@ class MainSceneLayer(cocos.layer.ScrollableLayer, pyglet.event.EventDispatcher):
     # def click(self, clicks):
     #     self.dispatch_event('on_clicked', clicks)
 
+    def tank_destroy(self, tank):
+        self.tanksLayer.remove(tank)
+        self.additionalLayer.remove(tank.GunSprite)
+        self.additionalLayer.remove(tank.healthSprite)
+        CollisionManager.remove_tricky(tank)
+
+        self.add_random_bot()
+        # if hasattr(tank, 'moving_handler'):
+        #     tank.moving_handler.finish()
+
     def add_tank(self, tank, player=False):
         self.tanksLayer.add(tank)
         self.additionalLayer.add(tank.GunSprite)
@@ -84,7 +97,9 @@ class MainSceneLayer(cocos.layer.ScrollableLayer, pyglet.event.EventDispatcher):
             tank.do(UserTankMovingHandlers())
 
         if not player:
-            tank.do(BotTankMovingHandlers())
+            moving_handler = BotTankMovingHandlers()
+            tank.moving_handler = moving_handler
+            tank.do(moving_handler)
 
     def add_bullet(self, bullet):
         self.bulletsLayer.add_object(bullet)
@@ -125,10 +140,30 @@ class MainSceneLayer(cocos.layer.ScrollableLayer, pyglet.event.EventDispatcher):
 
     def get_observation(self, tank):
         obs = []
-        for item in self.tanksLayer.get_children():
-            tank_info = [item.position[0], item.position[1], item.getGunRotation()]
-            obs.append(tank_info)
+
+        tanks_list = self.tanksLayer.get_children()
+        current_index = tanks_list.index(tank)
+
+        # first tank it is the current tank
+        tanks = self.get_K_means_tanks(current_index)
+        # should be 9 features
+        current_rotation = tank.getGunRotation()
+        obs.append(current_rotation)
+
+        for item in tanks:
+            # tank_info = [item.position[0], item.position[1]]
+            obs.append(item.position[0])
+            obs.append(item.position[1])
+
         return obs
+
+    def get_K_means_tanks(self, current_index, K=3):
+        tanks_list = self.tanksLayer.get_children()
+        tanks = np.array(list(map(lambda obj: obj.position, tanks_list)))
+        dist_sq = np.sum((tanks[:, np.newaxis] - tanks[np.newaxis, :]) ** 2, axis=-1)
+        nearest_sorted = np.argsort(dist_sq, axis=1)[:, :K+1]
+        nearest_indexes = nearest_sorted[nearest_sorted[:, 0] == current_index][0]
+        return [tanks_list[i] for i in nearest_indexes]
 
     def on_clicked(self, clicks):
         print('on_clicked', clicks)
@@ -216,6 +251,11 @@ class MainSceneLayer(cocos.layer.ScrollableLayer, pyglet.event.EventDispatcher):
         for label in self.globalPanel.get_children():
             if isinstance(label, cocos.text.Label) and not int(label.opacity):
                 self.globalPanel.remove(label)
+
+    def add_random_bot(self):
+        x, y = randint(0, 2000), randint(0, 2000)
+        rotate = randint(0, 360)
+        self.add_tank(Tank(x, y, rotate))
 
     def printDebugInfo(self):
         bullets = Global.getGameBullets()

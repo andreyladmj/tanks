@@ -20,6 +20,7 @@ class HeavyWeapon:
         self.tank = tank
 
     def getAngleDeflection(self):
+        return 0
         return random.randrange(-200, 200) / 100
 
     def firePosition(self):

@@ -44,6 +44,8 @@ def createInterface():
     MainLayer.register_event_type('on_clicked')
 
     MainLayer.register_event_type('add_tank')
+    MainLayer.register_event_type('tank_destroy')
+    MainLayer.register_event_type('add_random_bot')
     MainLayer.register_event_type('add_animation')
     MainLayer.register_event_type('add_bullet')
     MainLayer.register_event_type('remove_animation')
@@ -58,32 +60,10 @@ def createInterface():
 
     MainLayer.dispatch_event('on_clicked', '12314124')
 
+    for i in range(40):
+        MainLayer.dispatch_event('add_random_bot')
     # MainLayer.dispatch_event('add_tank', Tank(200, 200, 180), True)
 
-    # MainLayer.dispatch_event('add_tank', Tank(500, 800, 90))
-    # MainLayer.dispatch_event('add_tank', Tank(800, 800, 270))
-    #
-    # MainLayer.dispatch_event('add_tank', Tank(500, 400, 90))
-    # MainLayer.dispatch_event('add_tank', Tank(800, 400, 270))
-    #
-    # MainLayer.dispatch_event('add_tank', Tank(1100, 400, 270))
-    # MainLayer.dispatch_event('add_tank', Tank(1400, 400, 90))
-    #
-    # MainLayer.dispatch_event('add_tank', Tank(1100, 800, 270))
-    # MainLayer.dispatch_event('add_tank', Tank(1400, 800, 90))
-    #
-    # MainLayer.dispatch_event('add_tank', Tank(1700, 400, 270))
-    # MainLayer.dispatch_event('add_tank', Tank(2000, 400, 90))
-    #
-    # MainLayer.dispatch_event('add_tank', Tank(1700, 800, 270))
-    # MainLayer.dispatch_event('add_tank', Tank(2000, 800, 90))
-    c = 0
-    for ix in range(500, 3000, 300):
-        for iy in range(500, 3000, 300):
-            c += 1
-            MainLayer.dispatch_event('add_tank', Tank(ix, iy, 90))
-
-    print('Count', c)
 
     # load_map()
     #

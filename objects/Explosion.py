@@ -29,6 +29,8 @@ class Explosion():
             for player in main_scene.tanksLayer.get_children():
                 if player in damage_collisions:
                     dmg = player.damage(self.bullet)
+                    # print('FIRED TANK OBSERVATIONS', self.bullet.fired_tank.observations, self.bullet.fired_tank)
+
                     self.bullet.fired_tank.set_reward(dmg)
 
             # for enemy in Global.objects['enemies']:

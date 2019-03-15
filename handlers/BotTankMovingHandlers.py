@@ -7,10 +7,123 @@ import operator
 
 from Global import get_main_layer
 from objects.Tank import Tank
+import numpy as np
+import tensorflow as tf
+
+
+
+input_size = 9
+hidden_size = 32
+output_size = 4
+
+
+from tensorflow.python.ops import random_ops
+def _initializer(shape, dtype=tf.float32, partition_info=None):
+    return random_ops.random_normal(shape)
+
+
+input = tf.placeholder(tf.float32, shape=[None, input_size])
+
+hidden1 = tf.contrib.layers.fully_connected(
+    inputs=input,
+    num_outputs=hidden_size,
+    activation_fn=tf.nn.relu,
+    weights_initializer=_initializer
+)
+
+logits = tf.contrib.layers.fully_connected(
+    inputs=hidden1,
+    num_outputs=output_size,
+    activation_fn=None
+)
+
+
+# sample
+random_action = tf.reshape(tf.multinomial(logits, 1), [])
+
+log_probabilities = tf.log(tf.nn.softmax(logits))
+
+tf_actions = tf.placeholder(tf.int32)
+advantages = tf.placeholder(tf.float32)
+
+indices = tf.range(0, tf.shape(log_probabilities)[0]) * tf.shape(log_probabilities)[1] + tf_actions
+action_probabilities = tf.gather(tf.reshape(log_probabilities, [-1]), indices)
+
+loss = -tf.reduce_sum(tf.multiply(action_probabilities, advantages))
+
+optimizer = tf.train.RMSPropOptimizer(0.0001)
+_train = optimizer.minimize(loss)
+saver = tf.train.Saver()
+
+sess = tf.Session()
+sess.run(tf.global_variables_initializer())
+
+def act(observation):
+    return sess.run(random_action, feed_dict={input: [observation]})
+
+def train_step(b_obs, b_acts, b_rews):
+    b_obs = np.array(b_obs)
+    b_acts = np.array(b_acts)
+    b_rews = np.array(b_rews)
+    # print('b_obs', b_obs.shape, 'b_acts', b_acts.shape, 'b_rews', b_rews.shape)
+    print('')
+    print('')
+    print('')
+    print('')
+    print('')
+    ll(b_obs, 'b_obs')
+    ll(b_acts, 'b_acts')
+    ll(b_rews, 'b_rews')
+
+    batch_feed = {input: b_obs, \
+                  tf_actions: b_acts, \
+                  advantages: b_rews}
+    #
+    # _indices, _log_probabilities, _tf_actions, __log_probabilities_reshaped, _tf_shape_log_probabilities, all_indexes, all_indexes_with_actions, _random_action \
+    #     = sess.run([indices, log_probabilities, tf_actions, tf.reshape(log_probabilities, [-1]),
+    #                            tf.shape(log_probabilities), tf.range(0, tf.shape(log_probabilities)[0]) * tf.shape(log_probabilities)[1],
+    #                                                                      tf.range(0, tf.shape(log_probabilities)[0]) * tf.shape(log_probabilities)[1] + tf_actions, random_action
+    #
+    #                            ], feed_dict=batch_feed)
+    #
+    # print('_random_action', _random_action.shape)
+    # print(_random_action)
+    # print('_log_probabilities', _log_probabilities.shape)
+    # print(_log_probabilities)
+    # print('_indices', _indices.shape)
+    # print(_indices)
+    # print('_tf_actions', _tf_actions.shape)
+    # print(_tf_actions)
+    # print('__log_probabilities_reshaped', __log_probabilities_reshaped.shape)
+    # print(__log_probabilities_reshaped)
+    # print('_tf_shape_log_probabilities', _tf_shape_log_probabilities.shape)
+    # print(_tf_shape_log_probabilities)
+    # print('all_indexes', all_indexes.shape)
+    # print(all_indexes)
+    # print('all_indexes_with_actions', all_indexes_with_actions.shape)
+    # print(all_indexes_with_actions)
+
+    _tf_actions, _log_probabilities_reshaped, _all_range, _indices = sess.run([tf_actions, tf.reshape(log_probabilities, [-1]), tf.range(0, tf.shape(log_probabilities)[0]) * tf.shape(log_probabilities)[1], indices], feed_dict=batch_feed)
+
+    ll(_log_probabilities_reshaped, '_log_probabilities_reshaped')
+    ll(_all_range, '_all_range')
+    ll(_tf_actions, '_tf_actions')
+    ll(_indices, '_indices')
+
+    sess.run(_train, feed_dict=batch_feed)
+    save_path = saver.save(sess, "/home/andrei/Python/tanks/assets/model/model.ckpt")
+    print("Model saved in path: %s" % save_path)
+
+def ll(a, name):
+
+    print('+++++++++++++')
+    print(name, a.shape)
+    print(a)
+    print('--------------')
 
 
 class BotTankMovingHandlers(actions.Move):
-      # type: Tank
+    # type: Tank
     '''
     actions: fire, rotate gun
     observations: K-nearest tanks, current position, gun rotation, tank rotation
@@ -20,29 +133,34 @@ class BotTankMovingHandlers(actions.Move):
         super().__init__(*args, **kwargs)
         self.speed = 5
         self.target = None
-        self.observations = []
-        self.actions = []
-        self.rewards = []
+
+        self.tf_observations = []
+        self.tf_actions = []
+        self.tf_rewards = []
+
+        print('init BotTankMovingHandlers')
 
     def step(self, dt):
         super(BotTankMovingHandlers, self).step(dt)  # Run step function on the parent class.
 
-        observation = self.get_observation()
-        self.observations.append(observation)
-        action = self.get_predicted_action(observation)
+        try:
+            observation = self.get_observation()
+            self.tf_observations.append(observation)
+            action = self.get_predicted_action(observation)
 
-        if action == 0: pass
-        if action == 1: self.gun_rotate(-1)
-        if action == 2: self.gun_rotate(1)
-        if action == 3: self.target.fireFirstWeapon()
+            if action == 0: pass
+            if action == 1: self.gun_rotate(-1)
+            if action == 2: self.gun_rotate(1)
+            if action == 3: self.target.fireFirstWeapon()
 
-        reward = self.get_reward()
+            reward = self.get_reward()
 
-        self.actions.append(action)
-        self.rewards.append(reward)
-        print(self.rewards)
-        print(self.actions)
-        print('')
+            self.tf_actions.append(action)
+            self.tf_rewards.append(reward)
+        except:
+            # print('Exception', self.done(), len(self.tf_observations), self.target)
+            self.finish()
+
 
     def policy_rollout(self, env):
         observation, reward, done = env.reset(), 0, False
@@ -67,8 +185,18 @@ class BotTankMovingHandlers(actions.Move):
     def get_observation(self):
         return get_main_layer().get_observation(self.target)
 
+
     def get_predicted_action(self, observation):
-        return random.randint(0, 3)
+        if random.randint(1, 10) <= 2:
+            return random.randint(1, 3)
+
+        return sess.run(random_action, feed_dict={input: [observation]})
+
+    def finish(self):
+        self.tf_rewards[-1] = len(self.tf_rewards) * 0.01
+        b_rews = self.tf_rewards
+        b_rews = (b_rews - np.mean(b_rews)) / (np.std(b_rews) + 1e-10)
+        train_step(self.tf_observations, self.tf_actions, b_rews)
 
     def gun_rotate(self, direction):
         self.target.gun_rotation += direction
@@ -301,3 +429,10 @@ def getAngleWithObject(obj1, obj2):
     x1, y1 = obj1.position
     x2, y2 = obj2.position
     return getAngle(x1, y1, x2, y2)
+
+
+def process_rewards(rews):
+    """Rewards -> Advantages for one episode. """
+
+    # total reward: length of episode
+    return [len(rews)] * len(rews)
