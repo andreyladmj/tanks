@@ -107,13 +107,19 @@ class MainSceneLayer(cocos.layer.ScrollableLayer, pyglet.event.EventDispatcher):
         bullet.do(BulletMovingHandlers())
 
     def add_animation(self, animation, duration=0):
-        self.additionalLayer.add(animation.getSprite(), z=5)
+        try:
+            self.additionalLayer.add(animation.getSprite(), z=5)
+        except:
+            pass
         # if duration:
         #     t = Timer(duration, lambda: self.additionalLayer.remove(animation.getSprite()))
         #     t.start()
 
     def remove_animation(self, animation):
-        self.additionalLayer.remove(animation)
+        try:
+            self.additionalLayer.remove(animation)
+        except:
+            pass
 
     def checkCollisions(self):
         for bullet in self.bulletsLayer.get_children():

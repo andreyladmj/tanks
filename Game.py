@@ -60,7 +60,7 @@ def createInterface():
 
     MainLayer.dispatch_event('on_clicked', '12314124')
 
-    for i in range(40):
+    for i in range(30):
         MainLayer.dispatch_event('add_random_bot')
     # MainLayer.dispatch_event('add_tank', Tank(200, 200, 180), True)
 

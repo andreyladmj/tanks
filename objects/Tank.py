@@ -67,6 +67,7 @@ class Tank(sprite.Sprite):
         self.tf_rewards = []
         self.tf_actions = []
         self.tf_observations = []
+        self.tf_data = []
 
         self.cshape = cm.AARectShape(
             self.position,
@@ -128,13 +129,17 @@ class Tank(sprite.Sprite):
         self.canFire = True
 
     def destroy(self):
+        from handlers.BotTankMovingHandlers import train_step
 
         animation = ExplosionTankAnimation(self.position)
         get_main_layer().dispatch_event('add_animation', animation)
         get_main_layer().dispatch_event('tank_destroy', self)
 
+        b_obs, b_acts, b_rews = self.tf_data
+        train_step(b_obs, b_acts, b_rews)
+
     def damage(self, bullet):
-        dx = (self.width + self.height) * self.scale / 2
+        dx = (self.width + self.height) * self.scale / 2 + 5
         dmg = DamageHelper.get_damage(self.position, bullet, dx)
 
         self.health -= dmg

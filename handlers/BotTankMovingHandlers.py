@@ -13,7 +13,7 @@ import tensorflow as tf
 
 
 input_size = 9
-hidden_size = 32
+hidden_size = 64
 output_size = 4
 
 
@@ -51,12 +51,14 @@ action_probabilities = tf.gather(tf.reshape(log_probabilities, [-1]), indices)
 
 loss = -tf.reduce_sum(tf.multiply(action_probabilities, advantages))
 
-optimizer = tf.train.RMSPropOptimizer(0.0001)
+optimizer = tf.train.RMSPropOptimizer(0.001)
 _train = optimizer.minimize(loss)
 saver = tf.train.Saver()
 
 sess = tf.Session()
-sess.run(tf.global_variables_initializer())
+# sess.run(tf.global_variables_initializer())
+
+saver.restore(sess, "assets/model/model.ckpt")
 
 def act(observation):
     return sess.run(random_action, feed_dict={input: [observation]})
@@ -66,14 +68,14 @@ def train_step(b_obs, b_acts, b_rews):
     b_acts = np.array(b_acts)
     b_rews = np.array(b_rews)
     # print('b_obs', b_obs.shape, 'b_acts', b_acts.shape, 'b_rews', b_rews.shape)
-    print('')
-    print('')
-    print('')
-    print('')
-    print('')
-    ll(b_obs, 'b_obs')
-    ll(b_acts, 'b_acts')
-    ll(b_rews, 'b_rews')
+    # print('')
+    # print('train_step')
+    # print('')
+    # print('')
+    # print('')
+    # ll(b_obs, 'b_obs')
+    # ll(b_acts, 'b_acts')
+    # ll(b_rews, 'b_rews')
 
     batch_feed = {input: b_obs, \
                   tf_actions: b_acts, \
@@ -103,16 +105,18 @@ def train_step(b_obs, b_acts, b_rews):
     # print('all_indexes_with_actions', all_indexes_with_actions.shape)
     # print(all_indexes_with_actions)
 
-    _tf_actions, _log_probabilities_reshaped, _all_range, _indices = sess.run([tf_actions, tf.reshape(log_probabilities, [-1]), tf.range(0, tf.shape(log_probabilities)[0]) * tf.shape(log_probabilities)[1], indices], feed_dict=batch_feed)
+    # _logits, _tf_actions, _log_probabilities_reshaped, _all_range, _indices = sess.run([logits, tf_actions, tf.reshape(log_probabilities, [-1]), tf.range(0, tf.shape(log_probabilities)[0]) * tf.shape(log_probabilities)[1], indices], feed_dict=batch_feed)
 
-    ll(_log_probabilities_reshaped, '_log_probabilities_reshaped')
-    ll(_all_range, '_all_range')
-    ll(_tf_actions, '_tf_actions')
-    ll(_indices, '_indices')
+    # ll(_log_probabilities_reshaped, '_log_probabilities_reshaped')
+    # ll(_all_range, '_all_range')
+    # ll(_tf_actions, '_tf_actions')
+    # ll(_indices, '_indices')
+    # ll(_logits, '_logits !!!!!!!!!!!!!!!!!!')
+    # ll(act(b_obs), 'random_action !!!!!!!!!!!!!!!!!!')
 
     sess.run(_train, feed_dict=batch_feed)
-    save_path = saver.save(sess, "/home/andrei/Python/tanks/assets/model/model.ckpt")
-    print("Model saved in path: %s" % save_path)
+    save_path = saver.save(sess, "assets/model/model.ckpt")
+    # print("Model saved in path: %s" % save_path)
 
 def ll(a, name):
 
@@ -138,12 +142,14 @@ class BotTankMovingHandlers(actions.Move):
         self.tf_actions = []
         self.tf_rewards = []
 
-        print('init BotTankMovingHandlers')
-
     def step(self, dt):
         super(BotTankMovingHandlers, self).step(dt)  # Run step function on the parent class.
 
         try:
+            # print(self.target, self.target.health)
+            # if self.target.health <= 0:
+            #     print('Seems tank was destroyed')
+
             observation = self.get_observation()
             self.tf_observations.append(observation)
             action = self.get_predicted_action(observation)
@@ -157,10 +163,15 @@ class BotTankMovingHandlers(actions.Move):
 
             self.tf_actions.append(action)
             self.tf_rewards.append(reward)
+
+            self.target.tf_data = self.tf_observations, self.tf_actions, self.tf_rewards
         except:
             # print('Exception', self.done(), len(self.tf_observations), self.target)
             self.finish()
 
+    def stop(self):
+        super().stop()
+        print('DONE')
 
     def policy_rollout(self, env):
         observation, reward, done = env.reset(), 0, False
@@ -185,12 +196,11 @@ class BotTankMovingHandlers(actions.Move):
     def get_observation(self):
         return get_main_layer().get_observation(self.target)
 
-
     def get_predicted_action(self, observation):
-        if random.randint(1, 10) <= 2:
+        if random.randint(1, 20) <= 1:
             return random.randint(1, 3)
 
-        return sess.run(random_action, feed_dict={input: [observation]})
+        return sess.run(random_action, feed_dict={input: [observation]}) - 1
 
     def finish(self):
         self.tf_rewards[-1] = len(self.tf_rewards) * 0.01
