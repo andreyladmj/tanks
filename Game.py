@@ -41,7 +41,6 @@ def createInterface():
     set_main_layer(MainLayer)
     main_scene = scene.Scene(MainLayer)
     main_scene.schedule(MainLayer.buttonsHandler)
-    MainLayer.register_event_type('on_clicked')
 
     MainLayer.register_event_type('add_tank')
     MainLayer.register_event_type('tank_destroy')
@@ -58,11 +57,16 @@ def createInterface():
     #     print('ovverided', clicks)
     #     pass
 
-    MainLayer.dispatch_event('on_clicked', '12314124')
 
-    for i in range(30):
-        MainLayer.dispatch_event('add_random_bot')
-    # MainLayer.dispatch_event('add_tank', Tank(200, 200, 180), True)
+    # for i in range(30):
+    #     MainLayer.dispatch_event('add_random_bot')
+    MainLayer.dispatch_event('add_tank', Tank(100, 100, 0), True)
+    MainLayer.dispatch_event('add_tank', Tank(200, 300, 120))
+    # MainLayer.dispatch_event('add_tank', Tank(330, 250, 30))
+    # MainLayer.dispatch_event('add_tank', Tank(70, 550, 40))
+    # MainLayer.dispatch_event('add_tank', Tank(500, 550, 50))
+    # MainLayer.dispatch_event('add_tank', Tank(600, 300, 60))
+    # MainLayer.dispatch_event('add_tank', Tank(300, 600, 70))
 
 
     # load_map()

@@ -31,7 +31,7 @@ class Explosion():
                     dmg = player.damage(self.bullet)
                     # print('FIRED TANK OBSERVATIONS', self.bullet.fired_tank.observations, self.bullet.fired_tank)
 
-                    self.bullet.fired_tank.set_reward(dmg)
+                    # self.bullet.fired_tank.set_reward(dmg)
 
             # for enemy in Global.objects['enemies']:
             #     if enemy in damage_collisions:

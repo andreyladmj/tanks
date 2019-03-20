@@ -12,9 +12,10 @@ import tensorflow as tf
 
 
 
-input_size = 9
-hidden_size = 64
-output_size = 4
+input_size = 1
+hidden_size1 = 32
+hidden_size2 = 32
+output_size = 2
 
 
 from tensorflow.python.ops import random_ops
@@ -26,13 +27,21 @@ input = tf.placeholder(tf.float32, shape=[None, input_size])
 
 hidden1 = tf.contrib.layers.fully_connected(
     inputs=input,
-    num_outputs=hidden_size,
+    num_outputs=hidden_size1,
+    activation_fn=tf.nn.tanh,
+    # activation_fn=tf.nn.relu,
+    weights_initializer=_initializer
+)
+
+hidden2 = tf.contrib.layers.fully_connected(
+    inputs=input,
+    num_outputs=hidden_size2,
     activation_fn=tf.nn.relu,
     weights_initializer=_initializer
 )
 
 logits = tf.contrib.layers.fully_connected(
-    inputs=hidden1,
+    inputs=hidden2,
     num_outputs=output_size,
     activation_fn=None
 )
@@ -51,14 +60,14 @@ action_probabilities = tf.gather(tf.reshape(log_probabilities, [-1]), indices)
 
 loss = -tf.reduce_sum(tf.multiply(action_probabilities, advantages))
 
-optimizer = tf.train.RMSPropOptimizer(0.001)
+optimizer = tf.train.RMSPropOptimizer(0.00001)
 _train = optimizer.minimize(loss)
 saver = tf.train.Saver()
 
 sess = tf.Session()
-# sess.run(tf.global_variables_initializer())
+sess.run(tf.global_variables_initializer())
 
-saver.restore(sess, "assets/model/model.ckpt")
+# saver.restore(sess, "assets/model/model.ckpt")
 
 def act(observation):
     return sess.run(random_action, feed_dict={input: [observation]})
@@ -67,54 +76,20 @@ def train_step(b_obs, b_acts, b_rews):
     b_obs = np.array(b_obs)
     b_acts = np.array(b_acts)
     b_rews = np.array(b_rews)
-    # print('b_obs', b_obs.shape, 'b_acts', b_acts.shape, 'b_rews', b_rews.shape)
-    # print('')
-    # print('train_step')
-    # print('')
-    # print('')
-    # print('')
-    # ll(b_obs, 'b_obs')
-    # ll(b_acts, 'b_acts')
-    # ll(b_rews, 'b_rews')
 
     batch_feed = {input: b_obs, \
                   tf_actions: b_acts, \
                   advantages: b_rews}
-    #
-    # _indices, _log_probabilities, _tf_actions, __log_probabilities_reshaped, _tf_shape_log_probabilities, all_indexes, all_indexes_with_actions, _random_action \
-    #     = sess.run([indices, log_probabilities, tf_actions, tf.reshape(log_probabilities, [-1]),
-    #                            tf.shape(log_probabilities), tf.range(0, tf.shape(log_probabilities)[0]) * tf.shape(log_probabilities)[1],
-    #                                                                      tf.range(0, tf.shape(log_probabilities)[0]) * tf.shape(log_probabilities)[1] + tf_actions, random_action
-    #
-    #                            ], feed_dict=batch_feed)
-    #
-    # print('_random_action', _random_action.shape)
-    # print(_random_action)
-    # print('_log_probabilities', _log_probabilities.shape)
-    # print(_log_probabilities)
-    # print('_indices', _indices.shape)
-    # print(_indices)
-    # print('_tf_actions', _tf_actions.shape)
-    # print(_tf_actions)
-    # print('__log_probabilities_reshaped', __log_probabilities_reshaped.shape)
-    # print(__log_probabilities_reshaped)
-    # print('_tf_shape_log_probabilities', _tf_shape_log_probabilities.shape)
-    # print(_tf_shape_log_probabilities)
-    # print('all_indexes', all_indexes.shape)
-    # print(all_indexes)
-    # print('all_indexes_with_actions', all_indexes_with_actions.shape)
-    # print(all_indexes_with_actions)
 
-    # _logits, _tf_actions, _log_probabilities_reshaped, _all_range, _indices = sess.run([logits, tf_actions, tf.reshape(log_probabilities, [-1]), tf.range(0, tf.shape(log_probabilities)[0]) * tf.shape(log_probabilities)[1], indices], feed_dict=batch_feed)
+    try:
+        sess.run(_train, feed_dict=batch_feed)
+    except Exception as e:
+        print(e)
+        raise e
 
-    # ll(_log_probabilities_reshaped, '_log_probabilities_reshaped')
-    # ll(_all_range, '_all_range')
-    # ll(_tf_actions, '_tf_actions')
-    # ll(_indices, '_indices')
-    # ll(_logits, '_logits !!!!!!!!!!!!!!!!!!')
-    # ll(act(b_obs), 'random_action !!!!!!!!!!!!!!!!!!')
+    # sess.run(tf_actions, feed_dict=batch_feed)
+    # sess.run(indices, feed_dict=batch_feed)
 
-    sess.run(_train, feed_dict=batch_feed)
     save_path = saver.save(sess, "assets/model/model.ckpt")
     # print("Model saved in path: %s" % save_path)
 
@@ -146,6 +121,9 @@ class BotTankMovingHandlers(actions.Move):
         super(BotTankMovingHandlers, self).step(dt)  # Run step function on the parent class.
 
         try:
+            if len(self.tf_observations) > 360:
+                #print('retraint')
+                self.finish()
             # print(self.target, self.target.health)
             # if self.target.health <= 0:
             #     print('Seems tank was destroyed')
@@ -154,19 +132,19 @@ class BotTankMovingHandlers(actions.Move):
             self.tf_observations.append(observation)
             action = self.get_predicted_action(observation)
 
-            if action == 0: pass
-            if action == 1: self.gun_rotate(-1)
-            if action == 2: self.gun_rotate(1)
-            if action == 3: self.target.fireFirstWeapon()
+            # if action == 0: pass
+            if action == 0: self.gun_rotate(-1)
+            if action == 1: self.gun_rotate(1)
+            # if action == 3: self.target.fireFirstWeapon()
 
-            reward = self.get_reward()
+            reward = self.get_reward(action)
 
             self.tf_actions.append(action)
             self.tf_rewards.append(reward)
 
             self.target.tf_data = self.tf_observations, self.tf_actions, self.tf_rewards
-        except:
-            # print('Exception', self.done(), len(self.tf_observations), self.target)
+        except Exception as e:
+            raise e
             self.finish()
 
     def stop(self):
@@ -190,23 +168,50 @@ class BotTankMovingHandlers(actions.Move):
 
         return obs, acts, rews
 
-    def get_reward(self):
-        return self.target.get_reward()
+    def get_reward(self, action):
+        return self.target.get_reward(action)
 
     def get_observation(self):
         return get_main_layer().get_observation(self.target)
 
     def get_predicted_action(self, observation):
-        if random.randint(1, 20) <= 1:
-            return random.randint(1, 3)
+        # if random.randint(1, 10) <= 2:
+        #     return random.randint(1, 3)
+        # print('_')
+        #
+        # observation2 = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+        # # tf.multinomial(logits, 1)
+        # for i in range(10):
+        #     print(sess.run(logits, feed_dict={input: [observation2]}))
+        #     print(sess.run(random_action, feed_dict={input: [observation2]}))
+        #     print(sess.run(tf.multinomial(logits, 1), feed_dict={input: [observation2]}))
+        #     print(sess.run(tf.multinomial(logits, 1), feed_dict={input: [observation2]}))
 
-        return sess.run(random_action, feed_dict={input: [observation]}) - 1
+        action, _logits = sess.run([random_action, logits], feed_dict={input: [observation]})
+
+        print('get_predicted_action', action, _logits, 'observation', observation)
+
+        if action > output_size - 1:
+            # action = random.randint(0, output_size - 1)
+            action = 0
+
+        return action
 
     def finish(self):
-        self.tf_rewards[-1] = len(self.tf_rewards) * 0.01
+        # self.tf_rewards[-1] = len(self.tf_rewards) * 0.01
         b_rews = self.tf_rewards
-        b_rews = (b_rews - np.mean(b_rews)) / (np.std(b_rews) + 1e-10)
+        #b_rews = (b_rews - np.mean(b_rews)) / (np.std(b_rews) + 1e-10)
         train_step(self.tf_observations, self.tf_actions, b_rews)
+
+        # print(self.target)
+        # print(self.tf_observations)
+        # print(self.tf_actions)
+        # print(b_rews)
+        # print('')
+
+        self.tf_observations = []
+        self.tf_actions = []
+        self.tf_rewards = []
 
     def gun_rotate(self, direction):
         self.target.gun_rotation += direction

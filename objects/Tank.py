@@ -8,6 +8,7 @@ from objects.HealthSprite import HealthSprite
 from objects.animations.ExplosionTankAnimation import ExplosionTankAnimation
 from objects.weapons.HeavyWeapon import HeavyWeapon
 from objects.weapons.LightWeapon import LightWeapon
+import numpy as np
 
 
 class Tank(sprite.Sprite):
@@ -51,6 +52,7 @@ class Tank(sprite.Sprite):
 
         self.healthSprite = sprite.Sprite(self.spriteHealthName)
         super().__init__(self.spriteName)
+        self.image_anchor = (self.image.width / 2, self.image.height / 2)
 
         self.scale = self.GunSprite.scale = 0.5
         self.rotation = self.GunSprite.rotation = rotation
@@ -161,16 +163,46 @@ class Tank(sprite.Sprite):
         # })
         return dmg
 
-    def get_reward(self):
-        reward = self.reward
-        self.reward = 0
-        return reward
+    def get_reward(self, action=None):
+        # reward = self.reward
+        # self.reward = 0
+        main = get_main_layer()
+
+        tanks_list = main.tanksLayer.get_children()
+        index = tanks_list.index(self)
+        other_nearest = main.get_nearest_tanks_indexes(index)[1:]
+        other_nearest = np.array([tanks_list[i].position for i in other_nearest])
+        diff = np.array(self.position) - other_nearest
+        angles = np.arctan2(diff[:, 0], diff[:, 1]) * 180 / np.pi
+        angle_diff = self.getGunRotation() - angles[0]
+
+        if angle_diff < 0:
+            angle_diff = 360 + angle_diff
+
+        r = -3
+        if action == 0 and angle_diff < 180:
+            r=1
+
+        if action == 1 and angle_diff > 180:
+            r=1
+
+
+        print('action', action, 'angle_diff', angle_diff, r)
+
+        # if action == 0 and angle_diff < 180:
+        #     return 1
+        #
+        # if action == 1 and angle_diff > 180:
+        #     return 1
+
+        return r
 
     def set_reward(self, reward):
-        self.reward = max(self.reward, reward)
+        #self.reward = max(self.reward, reward)
+        self.reward = reward
 
     def getGunRotation(self):
-        return self.gun_rotation + self.rotation
+        return (self.gun_rotation + self.rotation) % 360
 
     def getObjectFromSelf(self):
         x, y = self.position

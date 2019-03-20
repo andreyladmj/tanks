@@ -46,11 +46,16 @@ class MainSceneLayer(cocos.layer.ScrollableLayer, pyglet.event.EventDispatcher):
         self.backgroundLayer.add(back)
         # self.calc_core = CalcCoreHelper(self.tanksLayer, self.objectsLayer, self.bulletsLayer)
 
+        self.nearest_sorted = []
+
     s = 0
     def update(self, dt):
+        self.nearest_sorted = self.get_all_nearest_tanks_indexes()
+
         self.checkCollisions()
         self.removeLabelsWithDamage()
 
+        self.calculate_rewards()
         # print(dt)
 
         # self.s += dt
@@ -144,6 +149,35 @@ class MainSceneLayer(cocos.layer.ScrollableLayer, pyglet.event.EventDispatcher):
                 explosion.checkDamageCollisions()
                 bullet.destroy()
 
+    def calculate_rewards(self):
+        tanks_list = self.tanksLayer.get_children()
+
+        for tank in tanks_list:
+            index = tanks_list.index(tank)
+            other_nearest = self.get_nearest_tanks_indexes(index)[1:]
+            other_nearest = np.array([tanks_list[i].position for i in other_nearest])
+            diff = np.array(tank.position) - other_nearest
+            angles = np.arctan2(diff[:, 0], diff[:, 1]) * 180 / np.pi
+            angle_diff = tank.getGunRotation() - angles[0]
+
+            # if abs(angle_diff) <= 20:
+            #     reward = (20 - abs(angle_diff)) / 2
+            # else:
+            reward = abs(angle_diff) % 180
+
+            if abs(angle_diff) > 180:
+                reward = 180 - reward
+
+            # reward = -reward / 10
+            reward = (180 - reward) / 90
+
+
+            tank.set_reward(reward)
+
+            chx, chy = tank.position
+            # if abs(200-chx+300-chy) < 5:
+            #     print(tank.getGunRotation(), 'angles', angles, 'angle_diff', angle_diff, 'Reward:', reward)
+
     def get_observation(self, tank):
         obs = []
 
@@ -151,40 +185,41 @@ class MainSceneLayer(cocos.layer.ScrollableLayer, pyglet.event.EventDispatcher):
         current_index = tanks_list.index(tank)
 
         # first tank it is the current tank
-        tanks = self.get_K_means_tanks(current_index)
-        # should be 9 features
+        tanks_indexes = self.get_nearest_tanks_indexes(current_index, K=1)
         current_rotation = tank.getGunRotation()
-        obs.append(current_rotation)
 
-        for item in tanks:
-            # tank_info = [item.position[0], item.position[1]]
-            obs.append(item.position[0])
-            obs.append(item.position[1])
+        ####################3
+        index = tanks_list.index(tank)
+        other_nearest = self.get_nearest_tanks_indexes(index)[1:]
+        other_nearest = np.array([tanks_list[i].position for i in other_nearest])
+        diff = np.array(tank.position) - other_nearest
+        angles = np.arctan2(diff[:, 0], diff[:, 1]) * 180 / np.pi
+        angle_diff = tank.getGunRotation() - angles[0]
+        if abs(angle_diff) > 180:
+            angle_diff = 180 - abs(angle_diff) % 180
+        else:
+            angle_diff = abs(angle_diff) % 180
+        ####################3
+
+
+        obs.append(angle_diff)
+
+        # for i in tanks_indexes:
+        #     # tank_info = [item.position[0], item.position[1]]
+        #     obs.append(tanks_list[i].position[0])
+        #     obs.append(tanks_list[i].position[1])
 
         return obs
 
-    def get_K_means_tanks(self, current_index, K=3):
+    def get_nearest_tanks_indexes(self, current_index, K=3):
+        nearest_indexes = self.nearest_sorted[self.nearest_sorted[:, 0] == current_index][0]
+        return nearest_indexes[:K+1]
+
+    def get_all_nearest_tanks_indexes(self):
         tanks_list = self.tanksLayer.get_children()
         tanks = np.array(list(map(lambda obj: obj.position, tanks_list)))
         dist_sq = np.sum((tanks[:, np.newaxis] - tanks[np.newaxis, :]) ** 2, axis=-1)
-        nearest_sorted = np.argsort(dist_sq, axis=1)[:, :K+1]
-        nearest_indexes = nearest_sorted[nearest_sorted[:, 0] == current_index][0]
-        return [tanks_list[i] for i in nearest_indexes]
-
-    def on_clicked(self, clicks):
-        print('on_clicked', clicks)
-
-    def sendDataToServer(self):
-        player = getGamePlayer()
-
-        if player:
-            Global.TankNetworkListenerConnection.Send({
-                'action': NetworkActions.TANK_MOVE,
-                NetworkDataCodes.POSITION: player.position,
-                NetworkDataCodes.GUN_ROTATION: player.gun_rotation,
-                NetworkDataCodes.ROTATION: player.rotation,
-                NetworkDataCodes.TANK_ID: player.id
-            })
+        return np.argsort(dist_sq, axis=1)
 
     def resize(self, width, height):
         self.viewPoint = (width // 2, height // 2)
@@ -259,32 +294,9 @@ class MainSceneLayer(cocos.layer.ScrollableLayer, pyglet.event.EventDispatcher):
                 self.globalPanel.remove(label)
 
     def add_random_bot(self):
-        x, y = randint(0, 2000), randint(0, 2000)
+        x, y = randint(0, 1400), randint(0, 1400)
         rotate = randint(0, 360)
         self.add_tank(Tank(x, y, rotate))
-
-    def printDebugInfo(self):
-        bullets = Global.getGameBullets()
-        tanks = Global.getGameTanks()
-        walls = Global.getGameWalls()
-        CM = Global.CollisionManager
-        LayersTanks = Global.Layers.tanks
-        LayersWalls = Global.Layers.walls
-        LayersBullets = Global.Layers.bullets
-        LayersAnimations = Global.Layers.globalPanel
-
-        print('bullets', len(bullets),
-              'LayersBullets', len(LayersBullets.children),
-              'LayersAnimations', len(LayersAnimations.children),
-              'CollisionManager', len(CM.objs),
-              'tanks', len(tanks))
-
-    def playAnimationsQueue(self):
-        for animation in Global.AnimationsQueue:
-            a = animation['anim']()
-            a.appendAnimationToLayer(animation['position'], animation['rotation'])
-
-        Global.AnimationsQueue = []
 
     sumDt = 30.0
 
